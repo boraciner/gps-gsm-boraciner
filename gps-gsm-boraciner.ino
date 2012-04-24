@@ -1,3 +1,4 @@
+#include <TimerOne.h>
 #include <TinyGPS.h>
 #include <EEPROM.h>
 #include <SoftwareSerial.h>
@@ -18,16 +19,24 @@ String readingFromInbox = String();
 String sendReadRequest = String();
 String PASSWORD = String();
 String RemoveCommand = String("AT+CMGD=");
-String ADMIN_PHONE_NUMBER = String();
+String ADMIN_PHONE_NUMBER = String("05558230165");
 String DurumBilgisiStr = String();
 
-
+int callback_counter=0;
+float flat, flon;
+unsigned long age;
+String flat_Str = String();
+String flon_Str = String();
+    
 void setup()  
 {
   Serial.begin(9600);
 
   ss.begin(9600);
   gsmSerial.begin(9600);  
+  
+  Timer1.initialize(8388480); //about 8.3 seconds
+  Timer1.attachInterrupt(callback);  
   
   NewMessageDEF = "+CMTI: \"SM\",";
   strWhichMsg = "";
@@ -63,19 +72,22 @@ void loop() // run over and over
     processData();
   }
   inData="";
-    
+  
+  //UPDATE GPS DATA INTO EEPROM
+  if(callback_counter >= 10)
+  {
+    Serial.println("callback okkk");    
+    TAKEGPSDATA();
+    callback_counter = 0;
+  }  
   
 }
 void printGPSDATA(){
-  
-    float flat, flon;
-    unsigned long age;
     gps.f_get_position(&flat, &flon, &age);
     Serial.print("LAT=");
-//    Serial.print(flat == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : flat, 6);
     Serial.println(flat,6);
-    Serial.print(" LON=");
-//    Serial.println(flon == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : flon, 6);
+    
+    Serial.print("LON=");
     Serial.println(flon,6);
 }
 
@@ -107,7 +119,6 @@ void processData(){
     Serial.println("yeni mesaj var");
     String sendReadRequest = "";
     sendReadRequest += MessageReadString;
-    
     int indexofMsgStr = inData.indexOf(NewMessageDEF);
     indexofMsgStr += NewMessageDEF.length();
     strWhichMsg = inData.substring(indexofMsgStr , indexofMsgStr+1); 
@@ -115,18 +126,19 @@ void processData(){
     
     Serial.print("gonderilen komut = ");
     Serial.println(sendReadRequest);
-    
     gsmSerial.println(sendReadRequest); // xxxx inci mesaji oku
   }else if(IsRinging())
   { // telefon caliyor
     Serial.println("telefon caliyor");
     AramayiMesguleCevir();    
     TAKEGPSDATA();
+    KoordinatBilgisiGonder();
   }else if(ReadFromInbox())
   {
+    /*
     takeMessageBody();
     processMessageBody();
-    removeSms();
+    removeSms();*/
   }else
   {
     if(debug)Serial.println("ELSE");  
@@ -188,7 +200,7 @@ if(passwordIsCorrect()){
     }
     
     if(sendstatus){
-      DurumBilgisiGonder();
+
     }
 }
 else
@@ -201,9 +213,9 @@ if(debug)Serial.println("<----processMessageBody");
 
 /***********DURUM BILGISI GONDER*********/
 /*****************START*******************/
-void DurumBilgisiGonder(){
+void KoordinatBilgisiGonder(){
   String atSendNumber = String(23);
-  DurumBilgisiStr="ROLE BILGILERI 1=";
+
   
   /////////////SEND SMS////////////
   gsmSerial.println("AT+CMGF=1");
@@ -213,7 +225,11 @@ void DurumBilgisiGonder(){
   atSendNumber += "\"";
   
   gsmSerial.println(atSendNumber);
-  gsmSerial.println(DurumBilgisiStr);
+  gsmSerial.print("LAT =");
+  gsmSerial.print(flat,6);
+  gsmSerial.print("LON =");
+  gsmSerial.print(flon,6);
+  
   gsmSerial.write(26);
 
 }
@@ -267,7 +283,7 @@ int passwordIsCorrect()
 
 int IsRinging()
 {
-  if (inData.indexOf("CRING: VOICE") >= 0 )
+  if (inData.indexOf("VOICE") >= 0 )
   {
     return 1;
   }
@@ -279,17 +295,6 @@ int IsRinging()
 int SifreDegistir()
 {
   if (inData.indexOf("YENISIFRE") >= 0 )
-  {
-    return 1;
-  }
-  else
-  {
-    return 0;
-  }
-}
-int SicaklikSoruyor()
-{
-  if (inData.indexOf("SICAKLIK") >= 0 )
   {
     return 1;
   }
@@ -319,4 +324,10 @@ void ReadPasswordFromEEPROM(){
   PASSWORD="";
   for( int cnt = 0; cnt < 8; cnt ++)
     PASSWORD += (char) EEPROM.read(cnt);
+}
+
+void callback()
+{
+  Serial.println("callback");    
+  callback_counter++;
 }
