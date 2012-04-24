@@ -3,9 +3,6 @@
 #include <SoftwareSerial.h>
 
 #define  inDataLENTGTH 128
-//--------------------------------------------
-// Bora Ciner -- GSM Modem Home Control System
-//--------------------------------------------
 
 TinyGPS gps;
 
