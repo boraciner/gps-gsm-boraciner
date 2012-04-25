@@ -148,7 +148,7 @@ void KoordinatBilgisiGonder(){
   gsmSerial.println(atSendNumber);
   gsmSerial.print("LAT =");
   gsmSerial.print(flat_store,6);
-  gsmSerial.print("LON =");
+  gsmSerial.print(" LON =");
   gsmSerial.print(flon_store,6);
   
   gsmSerial.print("   LINK =");
