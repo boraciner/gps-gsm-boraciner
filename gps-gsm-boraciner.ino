@@ -12,15 +12,9 @@ boolean debug = true;
 
 String inData = String();
 boolean inputAvailable = false;
-String strWhichMsg = String();
-String NewMessageDEF = String();
-String MessageReadString = String();
-String readingFromInbox = String();
-String sendReadRequest = String();
 String PASSWORD = String("20012001");
 String RemoveCommand = String("AT+CMGD=");
 String ADMIN_PHONE_NUMBER = String("05558230165");
-String DurumBilgisiStr = String();
 String recievedNumber = String();
 
 int callback_counter=0;
@@ -30,32 +24,23 @@ unsigned long age;
 
 float flat_store = 0.0;    
 float flon_store = 0.0;
+
 void setup()  
 {
   Serial.begin(9600);
-
   ss.begin(9600);
   gsmSerial.begin(9600);  
   
   Timer1.initialize(8388480); //about 8.3 seconds
   Timer1.attachInterrupt(callback);  
   
-  NewMessageDEF = "+CMTI: \"SM\",";
-  strWhichMsg = "";
-  MessageReadString = "at+cmgr=";
-  readingFromInbox = "REC UNREAD";
-
-  
-  
   Serial.print("ADMIN_PHONE_NUMBER =");
   Serial.println(ADMIN_PHONE_NUMBER);
   
-  
-  if(debug)
-  Serial.println("Setup..! wait for 1 sec");
   delay(1000);
   Serial.print("_SS_MAX_RX_BUFF = ");
   Serial.println(_SS_MAX_RX_BUFF);
+  
   removeSms();  
 }
 
@@ -76,7 +61,7 @@ void loop() // run over and over
   inData="";
   
   //UPDATE GPS DATA INTO EEPROM
-  if(callback_counter >= 10)
+  if(callback_counter >= 80)
   {
     Serial.print("callback ok!");
     callback_counter = 0;
@@ -181,17 +166,6 @@ if(debug)Serial.println("<----removeSms");
 int IsRinging()
 {
   if (inData.indexOf("VOICE") >= 0 )
-  {
-    return 1;
-  }
-  else
-  {
-    return 0;
-  }
-}
-int ReadFromInbox()
-{
-  if (inData.indexOf(readingFromInbox) >= 0 )
   {
     return 1;
   }
