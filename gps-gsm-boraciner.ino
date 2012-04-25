@@ -5,29 +5,31 @@
 
 TinyGPS gps;
 
-SoftwareSerial gsmSerial(2, 3); //SoftwareSerial(rxPin, txPin);
+SoftwareSerial gsmSerial(2, 3);
 SoftwareSerial ss(5,6);
 
 boolean debug = true;
 
-String inData = String(); // Allocate some space for the string
+String inData = String();
 boolean inputAvailable = false;
 String strWhichMsg = String();
 String NewMessageDEF = String();
 String MessageReadString = String();
 String readingFromInbox = String();
 String sendReadRequest = String();
-String PASSWORD = String();
+String PASSWORD = String("20012001");
 String RemoveCommand = String("AT+CMGD=");
-String ADMIN_PHONE_NUMBER = String();
+String ADMIN_PHONE_NUMBER = String("05558230165");
 String DurumBilgisiStr = String();
+String recievedNumber = String();
 
 int callback_counter=0;
+int indexofMsgStr = 0;
 float flat, flon;
 unsigned long age;
-String flat_Str = String();
-String flon_Str = String();
-    
+
+float flat_store = 0.0;    
+float flon_store = 0.0;
 void setup()  
 {
   Serial.begin(9600);
@@ -43,20 +45,18 @@ void setup()
   MessageReadString = "at+cmgr=";
   readingFromInbox = "REC UNREAD";
 
-  ReadPasswordFromEEPROM();
-  ReadPhoneFromEEPROM();
   
-  Serial.print("PASSWORD =");
-  Serial.println(PASSWORD);
   
-  ADMIN_PHONE_NUMBER = "05558230165"; // KALDIRILACAK BORA CINER
+  Serial.print("ADMIN_PHONE_NUMBER =");
+  Serial.println(ADMIN_PHONE_NUMBER);
+  
   
   if(debug)
   Serial.println("Setup..! wait for 1 sec");
   delay(1000);
   Serial.print("_SS_MAX_RX_BUFF = ");
   Serial.println(_SS_MAX_RX_BUFF);
-//  removeSms();  
+  removeSms();  
 }
 
 void loop() // run over and over
@@ -71,7 +71,6 @@ void loop() // run over and over
   }
   if(inputAvailable){
     inputAvailable=false;
-    
     processData();
   }
   inData="";
@@ -89,7 +88,13 @@ void printGPSDATA(){
     gps.f_get_position(&flat, &flon, &age);
     Serial.print("LAT=");
     Serial.println(flat,6);
-    
+
+    if( flat > 0.0 ) 
+    flat_store = flat;   
+
+    if( flon > 0.0 ) 
+    flon_store = flon;   
+
     Serial.print("LON=");
     Serial.println(flon,6);
 }
@@ -114,42 +119,28 @@ void TAKEGPSDATA(){
 }
 
 void processData(){
-  Serial.println("---->processData");  
   Serial.println(inData);  
   
-  if(thereIsNewMessage())
-  { // yeni mesaj var
-    Serial.println("yeni mesaj var");
-    String sendReadRequest = "";
-    sendReadRequest += MessageReadString;
-    int indexofMsgStr = inData.indexOf(NewMessageDEF);
-    indexofMsgStr += NewMessageDEF.length();
-    strWhichMsg = inData.substring(indexofMsgStr , indexofMsgStr+1); 
-    sendReadRequest +=strWhichMsg;
-    
-    Serial.print("gonderilen komut = ");
-    Serial.println(sendReadRequest);
-    gsmSerial.println(sendReadRequest); // xxxx inci mesaji oku
-  }else if(IsRinging())
+  if(IsRinging())
   { // telefon caliyor
     Serial.println("telefon caliyor");
     AramayiMesguleCevir();    
-    //******** if contains admin phone number ----------- YAPILACAK  
-      TAKEGPSDATA();
-      KoordinatBilgisiGonder();
-    //******** if contains admin phone number ----------- YAPILACAK
-  }else if(ReadFromInbox())
-  {
+    indexofMsgStr = inData.indexOf("+CLIP: \"+9");
+    indexofMsgStr += 10;
+    recievedNumber = inData.substring(indexofMsgStr , indexofMsgStr+11); 
+    Serial.print("recieved number=");
+    Serial.println(recievedNumber);
     
-    takeMessageBody();
-    processMessageBody();
-    removeSms();
-  }else
-  {
-    if(debug)Serial.println("ELSE");  
+    if(ADMIN_PHONE_NUMBER == recievedNumber)
+    {
+      TAKEGPSDATA();
+      KoordinatBilgisiGonder();        
+    }
   }
-  
-  Serial.println("<----processData");  
+  else
+  {
+    Serial.println("ELSE");  
+  }
 }
 
 void AramayiMesguleCevir(){
@@ -158,77 +149,11 @@ void AramayiMesguleCevir(){
 }
 
 
-void takeMessageBody(){
-if(debug)Serial.println("---->takeMessageBody");  
-int index_of_NewLine = 0;
-if(debug)
-{
-  Serial.print("ADMIN PHONE NUMBER ");
-  Serial.println(ADMIN_PHONE_NUMBER);
-}
-  index_of_NewLine = inData.indexOf("REC UNREAD");  
-  index_of_NewLine += 53;
-  inData = inData.substring(index_of_NewLine,index_of_NewLine+29);
-
-if(debug)
-{
-  Serial.println("Message Body ===>");
-  Serial.println(inData);
-  Serial.println("<----takeMessageBody");   
-}
-}
-
-void processMessageBody(){
-
-if(debug)Serial.println("---->processMessageBody");  
-boolean sendstatus = false;
-if(passwordIsCorrect()){
-    if(DurumSoruyor())
-    {
-      if(debug)Serial.println("Durum Soruyor !");   
-      sendstatus = true;            
-    }
-    else if(SifreDegistir())
-    {
-      //YENISIFRE12345678 20012001           
-      PASSWORD = inData.substring(9,17);
-      if(debug)
-      {
-        Serial.println("New Password =>");   
-        Serial.println(PASSWORD);   
-      }
-      WriteNewPasswordToEEPROM();
-    }
-    else if(AdminPhoneDegistir())
-    {
-      //YENINUMARA05558230165 20012001           
-      ADMIN_PHONE_NUMBER = inData.substring(10,21);
-      if(debug)
-      {
-        Serial.println("New PHONE =>");   
-        Serial.println(ADMIN_PHONE_NUMBER);   
-      }
-      WriteNewPhoneToEEPROM();
-    }
-    
-    if(sendstatus){
-
-    }
-}
-else
-{
-  if(debug)Serial.println("Hatali Sifre!!");     
-}
-
-if(debug)Serial.println("<----processMessageBody");    
-}
 
 /***********DURUM BILGISI GONDER*********/
 /*****************START*******************/
 void KoordinatBilgisiGonder(){
   String atSendNumber = String(23);
-
-  
   /////////////SEND SMS////////////
   gsmSerial.println("AT+CMGF=1");
   
@@ -238,14 +163,12 @@ void KoordinatBilgisiGonder(){
   
   gsmSerial.println(atSendNumber);
   gsmSerial.print("LAT =");
-  gsmSerial.print(flat,6);
+  gsmSerial.print(flat_store,6);
   gsmSerial.print("LON =");
-  gsmSerial.print(flon,6);
+  gsmSerial.print(flon_store,6);
   
   gsmSerial.write(26);
-
 }
-
 
 void removeSms(){
 if(debug)Serial.println("---->removeSms");  
@@ -253,44 +176,6 @@ gsmSerial.println("AT+CMGD=1,4");
 delay(100);
 gsmSerial.write(26);
 if(debug)Serial.println("<----removeSms");
-}
-
-
-/***********BOOLEAN IF ELSE FUNCTIONS*********/
-/*****************START***********************/
-int DurumSoruyor()
-{
-  if (inData.indexOf("DURUM") >= 0 )
-  {
-    return 1;
-  }
-  else
-  {
-    return 0;
-  }
-}
-
-int thereIsNewMessage()
-{
-  if (inData.indexOf(NewMessageDEF) >= 0 )
-  {
-    return 1;
-  }
-  else
-  {
-    return 0;
-  }
-}
-int passwordIsCorrect()
-{
-  if (inData.indexOf(PASSWORD) >= 0 )
-  {
-    return 1;
-  }
-  else
-  {
-    return 0;
-  }
 }
 
 int IsRinging()
@@ -304,29 +189,6 @@ int IsRinging()
     return 0;
   }
 }
-int SifreDegistir()
-{
-  if (inData.indexOf("YENISIFRE") >= 0 )
-  {
-    return 1;
-  }
-  else
-  {
-    return 0;
-  }
-}
-int AdminPhoneDegistir()
-{
-  if (inData.indexOf("YENINUMARA") >= 0 )
-  {
-    return 1;
-  }
-  else
-  {
-    return 0;
-  }
-}
-
 int ReadFromInbox()
 {
   if (inData.indexOf(readingFromInbox) >= 0 )
@@ -337,29 +199,6 @@ int ReadFromInbox()
   {
     return 0;
   }
-}
-
-void WriteNewPasswordToEEPROM(){
-  for( int cnt = 0; cnt < 8; cnt ++)
-    EEPROM.write(cnt, PASSWORD.charAt(cnt));
-}
-
-void ReadPasswordFromEEPROM(){
-  PASSWORD="";
-  for( int cnt = 0; cnt < 8; cnt ++)
-    PASSWORD += (char) EEPROM.read(cnt);
-}
-
-void WriteNewPhoneToEEPROM(){
-  //05558230165
-  for( int cnt = 8; cnt <= 19; cnt ++)
-    EEPROM.write(cnt, ADMIN_PHONE_NUMBER.charAt(cnt));
-}
-
-void ReadPhoneFromEEPROM(){
-    ADMIN_PHONE_NUMBER ="";
-  for( int cnt = 8; cnt <= 19; cnt ++)
-    ADMIN_PHONE_NUMBER += (char) EEPROM.read(cnt);
 }
 
 void callback()
