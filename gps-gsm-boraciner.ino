@@ -12,7 +12,6 @@ boolean debug = true;
 
 String inData = String();
 boolean inputAvailable = false;
-String PASSWORD = String("20012001");
 String RemoveCommand = String("AT+CMGD=");
 String ADMIN_PHONE_NUMBER = String("05558230165");
 String recievedNumber = String();
@@ -152,6 +151,12 @@ void KoordinatBilgisiGonder(){
   gsmSerial.print("LON =");
   gsmSerial.print(flon_store,6);
   
+  gsmSerial.print("   LINK =");
+  gsmSerial.print(" http://maps.google.com/?ie=UTF8&hq=&ll=");
+  gsmSerial.print(flat_store,6);
+  gsmSerial.print(",");
+  gsmSerial.print(flon_store,6);
+  gsmSerial.print("&z=20");
   gsmSerial.write(26);
 }
 
