@@ -19,7 +19,7 @@ String readingFromInbox = String();
 String sendReadRequest = String();
 String PASSWORD = String();
 String RemoveCommand = String("AT+CMGD=");
-String ADMIN_PHONE_NUMBER = String("05558230165");
+String ADMIN_PHONE_NUMBER = String();
 String DurumBilgisiStr = String();
 
 int callback_counter=0;
@@ -44,9 +44,12 @@ void setup()
   readingFromInbox = "REC UNREAD";
 
   ReadPasswordFromEEPROM();
+  ReadPhoneFromEEPROM();
   
   Serial.print("PASSWORD =");
   Serial.println(PASSWORD);
+  
+  ADMIN_PHONE_NUMBER = "05558230165"; // KALDIRILACAK BORA CINER
   
   if(debug)
   Serial.println("Setup..! wait for 1 sec");
@@ -76,9 +79,9 @@ void loop() // run over and over
   //UPDATE GPS DATA INTO EEPROM
   if(callback_counter >= 10)
   {
-    Serial.println("callback okkk");    
-    TAKEGPSDATA();
+    Serial.print("callback ok!");
     callback_counter = 0;
+    TAKEGPSDATA();
   }  
   
 }
@@ -131,14 +134,16 @@ void processData(){
   { // telefon caliyor
     Serial.println("telefon caliyor");
     AramayiMesguleCevir();    
-    TAKEGPSDATA();
-    KoordinatBilgisiGonder();
+    //******** if contains admin phone number ----------- YAPILACAK  
+      TAKEGPSDATA();
+      KoordinatBilgisiGonder();
+    //******** if contains admin phone number ----------- YAPILACAK
   }else if(ReadFromInbox())
   {
-    /*
+    
     takeMessageBody();
     processMessageBody();
-    removeSms();*/
+    removeSms();
   }else
   {
     if(debug)Serial.println("ELSE");  
@@ -156,10 +161,6 @@ void AramayiMesguleCevir(){
 void takeMessageBody(){
 if(debug)Serial.println("---->takeMessageBody");  
 int index_of_NewLine = 0;
-
-int indexofPhoneStr = inData.indexOf("\",\"+9");
-indexofPhoneStr += 5;
-ADMIN_PHONE_NUMBER = inData.substring(indexofPhoneStr , indexofPhoneStr+11); 
 if(debug)
 {
   Serial.print("ADMIN PHONE NUMBER ");
@@ -197,6 +198,17 @@ if(passwordIsCorrect()){
         Serial.println(PASSWORD);   
       }
       WriteNewPasswordToEEPROM();
+    }
+    else if(AdminPhoneDegistir())
+    {
+      //YENINUMARA05558230165 20012001           
+      ADMIN_PHONE_NUMBER = inData.substring(10,21);
+      if(debug)
+      {
+        Serial.println("New PHONE =>");   
+        Serial.println(ADMIN_PHONE_NUMBER);   
+      }
+      WriteNewPhoneToEEPROM();
     }
     
     if(sendstatus){
@@ -303,6 +315,18 @@ int SifreDegistir()
     return 0;
   }
 }
+int AdminPhoneDegistir()
+{
+  if (inData.indexOf("YENINUMARA") >= 0 )
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
 int ReadFromInbox()
 {
   if (inData.indexOf(readingFromInbox) >= 0 )
@@ -326,8 +350,19 @@ void ReadPasswordFromEEPROM(){
     PASSWORD += (char) EEPROM.read(cnt);
 }
 
+void WriteNewPhoneToEEPROM(){
+  //05558230165
+  for( int cnt = 8; cnt <= 19; cnt ++)
+    EEPROM.write(cnt, ADMIN_PHONE_NUMBER.charAt(cnt));
+}
+
+void ReadPhoneFromEEPROM(){
+    ADMIN_PHONE_NUMBER ="";
+  for( int cnt = 8; cnt <= 19; cnt ++)
+    ADMIN_PHONE_NUMBER += (char) EEPROM.read(cnt);
+}
+
 void callback()
 {
-  Serial.println("callback");    
   callback_counter++;
 }
