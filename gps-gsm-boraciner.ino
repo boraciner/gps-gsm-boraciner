@@ -1,6 +1,5 @@
 #include <TimerOne.h>
 #include <TinyGPS.h>
-#include <EEPROM.h>
 #include <SoftwareSerial.h>
 
 TinyGPS gps;
@@ -33,12 +32,12 @@ void setup()
   Timer1.initialize(8388480); //about 8.3 seconds
   Timer1.attachInterrupt(callback);  
   
-  Serial.print("ADMIN_PHONE_NUMBER =");
-  Serial.println(ADMIN_PHONE_NUMBER);
+  //Serial.print("ADMIN_PHONE_NUMBER =");
+  //Serial.println(ADMIN_PHONE_NUMBER);
   
   delay(1000);
-  Serial.print("_SS_MAX_RX_BUFF = ");
-  Serial.println(_SS_MAX_RX_BUFF);
+  //Serial.print("_SS_MAX_RX_BUFF = ");
+  //Serial.println(_SS_MAX_RX_BUFF);
   
   removeSms();  
 }
@@ -62,7 +61,7 @@ void loop() // run over and over
   //UPDATE GPS DATA INTO EEPROM
   if(callback_counter >= 80)
   {
-    Serial.print("callback ok!");
+    //Serial.print("callback ok!");
     callback_counter = 0;
     TAKEGPSDATA();
   }  
@@ -70,8 +69,8 @@ void loop() // run over and over
 }
 void printGPSDATA(){
     gps.f_get_position(&flat, &flon, &age);
-    Serial.print("LAT=");
-    Serial.println(flat,6);
+    //Serial.print("LAT=");
+    //Serial.println(flat,6);
 
     if( flat > 0.0 ) 
     flat_store = flat;   
@@ -79,12 +78,12 @@ void printGPSDATA(){
     if( flon > 0.0 ) 
     flon_store = flon;   
 
-    Serial.print("LON=");
-    Serial.println(flon,6);
+    //Serial.print("LON=");
+    //Serial.println(flon,6);
 }
 
 void TAKEGPSDATA(){  
- if(debug)Serial.println("---->TAKEGPSDATA"); 
+    //Serial.println("---->TAKEGPSDATA"); 
     ss.listen(); 
     delay(100);
     for (unsigned long start = millis(); millis() - start < 1000;)
@@ -99,21 +98,21 @@ void TAKEGPSDATA(){
       }
     }
     gsmSerial.listen();  
- if(debug)Serial.println("<----TAKEGPSDATA");     
+    //Serial.println("<----TAKEGPSDATA");     
 }
 
 void processData(){
-  Serial.println(inData);  
+  //Serial.println(inData);  
   
   if(IsRinging())
   { // telefon caliyor
-    Serial.println("telefon caliyor");
+    //Serial.println("telefon caliyor");
     AramayiMesguleCevir();    
     indexofMsgStr = inData.indexOf("+CLIP: \"+9");
     indexofMsgStr += 10;
     recievedNumber = inData.substring(indexofMsgStr , indexofMsgStr+11); 
-    Serial.print("recieved number=");
-    Serial.println(recievedNumber);
+    //Serial.print("recieved number=");
+    //Serial.println(recievedNumber);
     
     if(ADMIN_PHONE_NUMBER == recievedNumber)
     {
@@ -123,7 +122,7 @@ void processData(){
   }
   else
   {
-    Serial.println("ELSE");  
+    //Serial.println("ELSE");  
   }
 }
 
@@ -161,11 +160,11 @@ void KoordinatBilgisiGonder(){
 }
 
 void removeSms(){
-if(debug)Serial.println("---->removeSms");  
+//Serial.println("---->removeSms");  
 gsmSerial.println("AT+CMGD=1,4");
 delay(100);
 gsmSerial.write(26);
-if(debug)Serial.println("<----removeSms");
+//Serial.println("<----removeSms");
 }
 
 int IsRinging()
