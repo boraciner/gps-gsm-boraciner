@@ -11,11 +11,17 @@ boolean debug = true;
 
 String inData = String();
 boolean inputAvailable = false;
+boolean admin_called = false;
 String RemoveCommand = String("AT+CMGD=");
-String ADMIN_PHONE_NUMBER = String("05558230165");
+
+String ADMIN_PHONE_NUMBER_1 = String("05558230165");
+String ADMIN_PHONE_NUMBER_2 = String("05323342412");
+String ADMIN_PHONE_NUMBER_3 = String("05396933288");
+
 String recievedNumber = String();
 
 int callback_counter=0;
+int removesms_counter=0;
 int indexofMsgStr = 0;
 float flat, flon;
 unsigned long age;
@@ -32,14 +38,13 @@ void setup()
   Timer1.initialize(8388480); //about 8.3 seconds
   Timer1.attachInterrupt(callback);  
   
-  //Serial.print("ADMIN_PHONE_NUMBER =");
-  //Serial.println(ADMIN_PHONE_NUMBER);
+
   
-  delay(1000);
+  delay(3000);
   //Serial.print("_SS_MAX_RX_BUFF = ");
   //Serial.println(_SS_MAX_RX_BUFF);
-  
-  removeSms();  
+  inData = "";
+  //removeSms();  
 }
 
 void loop() // run over and over
@@ -55,8 +60,8 @@ void loop() // run over and over
   if(inputAvailable){
     inputAvailable=false;
     processData();
+    inData="";
   }
-  inData="";
   
   //UPDATE GPS DATA INTO EEPROM
   if(callback_counter >= 80)
@@ -65,6 +70,14 @@ void loop() // run over and over
     callback_counter = 0;
     TAKEGPSDATA();
   }  
+
+  //REMOVE ALL SMS MESSAGES
+  if(removesms_counter >= 10000)
+  {
+    removesms_counter = 0;
+    removeSms();
+  }
+  
   
 }
 void printGPSDATA(){
@@ -108,22 +121,33 @@ void processData(){
   { // telefon caliyor
     //Serial.println("telefon caliyor");
     AramayiMesguleCevir();    
-    indexofMsgStr = inData.indexOf("+CLIP: \"+9");
-    indexofMsgStr += 10;
+    indexofMsgStr = inData.indexOf("+CLIP");
+    indexofMsgStr += 8;
     recievedNumber = inData.substring(indexofMsgStr , indexofMsgStr+11); 
     //Serial.print("recieved number=");
     //Serial.println(recievedNumber);
+    admin_called = false;
     
-    if(ADMIN_PHONE_NUMBER == recievedNumber)
+    if(ADMIN_PHONE_NUMBER_1 == recievedNumber)
+    {
+      admin_called = true;
+    }
+    else if(ADMIN_PHONE_NUMBER_2 == recievedNumber)
+    {
+      admin_called = true;      
+    }
+    else if(ADMIN_PHONE_NUMBER_3 == recievedNumber)
+    {
+      admin_called = true;      
+    }
+    
+    if( admin_called )
     {
       TAKEGPSDATA();
       KoordinatBilgisiGonder();        
     }
   }
-  else
-  {
-    //Serial.println("ELSE");  
-  }
+  
 }
 
 void AramayiMesguleCevir(){
@@ -141,7 +165,7 @@ void KoordinatBilgisiGonder(){
   gsmSerial.println("AT+CMGF=1");
   
   atSendNumber = "AT+CMGS=\"+9";
-  atSendNumber += ADMIN_PHONE_NUMBER;
+  atSendNumber += recievedNumber;
   atSendNumber += "\"";
   
   gsmSerial.println(atSendNumber);
@@ -182,4 +206,5 @@ int IsRinging()
 void callback()
 {
   callback_counter++;
+  removesms_counter++;
 }
