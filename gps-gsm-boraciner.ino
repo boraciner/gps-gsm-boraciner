@@ -23,7 +23,7 @@ String recievedNumber = String();
 int callback_counter=0;
 int removesms_counter=0;
 int indexofMsgStr = 0;
-float flat, flon;
+float flat, flon, fkmph;
 unsigned long age;
 
 float flat_store = 0.0;    
@@ -91,6 +91,7 @@ void printGPSDATA(){
     if( flon > 0.0 ) 
     flon_store = flon;   
 
+    fkmph = gps.f_speed_kmph(); // speed in km/hr
     //Serial.print("LON=");
     //Serial.println(flon,6);
 }
@@ -173,6 +174,10 @@ void KoordinatBilgisiGonder(){
   gsmSerial.print(flat_store,6);
   gsmSerial.print(" LON =");
   gsmSerial.print(flon_store,6);
+  
+  gsmSerial.print(" HIZ =");
+  gsmSerial.print(fkmph);
+  gsmSerial.print("km/saat");
   
   gsmSerial.print("   LINK =");
   gsmSerial.print(" http://maps.google.com/?ie=UTF8&hq=&ll=");
