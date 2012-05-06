@@ -38,11 +38,7 @@ void setup()
   Timer1.initialize(8388480); //about 8.3 seconds
   Timer1.attachInterrupt(callback);  
   
-
-  
   delay(3000);
-  //Serial.print("_SS_MAX_RX_BUFF = ");
-  //Serial.println(_SS_MAX_RX_BUFF);
   inData = "";
   //removeSms();  
 }
@@ -82,8 +78,6 @@ void loop() // run over and over
 }
 void printGPSDATA(){
     gps.f_get_position(&flat, &flon, &age);
-    //Serial.print("LAT=");
-    //Serial.println(flat,6);
 
     if( flat > 0.0 ) 
     flat_store = flat;   
@@ -92,6 +86,11 @@ void printGPSDATA(){
     flon_store = flon;   
 
     fkmph = gps.f_speed_kmph(); // speed in km/hr
+
+    //Serial.print("HIZ=");
+    //Serial.println(fkmph);
+    //Serial.print("LAT=");
+    //Serial.println(flat,6);
     //Serial.print("LON=");
     //Serial.println(flon,6);
 }
@@ -122,8 +121,8 @@ void processData(){
   { // telefon caliyor
     //Serial.println("telefon caliyor");
     AramayiMesguleCevir();    
-    indexofMsgStr = inData.indexOf("+CLIP");
-    indexofMsgStr += 8;
+    indexofMsgStr = inData.indexOf("+905");
+    indexofMsgStr += 2;
     recievedNumber = inData.substring(indexofMsgStr , indexofMsgStr+11); 
     //Serial.print("recieved number=");
     //Serial.println(recievedNumber);
@@ -144,6 +143,7 @@ void processData(){
     
     if( admin_called )
     {
+      //Serial.println("admin_called ok!");
       TAKEGPSDATA();
       KoordinatBilgisiGonder();        
     }
@@ -168,24 +168,25 @@ void KoordinatBilgisiGonder(){
   atSendNumber = "AT+CMGS=\"+9";
   atSendNumber += recievedNumber;
   atSendNumber += "\"";
-  
+
   gsmSerial.println(atSendNumber);
-  gsmSerial.print("LAT =");
-  gsmSerial.print(flat_store,6);
-  gsmSerial.print(" LON =");
-  gsmSerial.print(flon_store,6);
   
-  gsmSerial.print(" HIZ =");
+  gsmSerial.print("ENLEM =");
+  gsmSerial.println(flat_store,6);
+  gsmSerial.print("BOYLAM =");
+  gsmSerial.println(flon_store,6);
+  
+  gsmSerial.print("HIZ =");
   gsmSerial.print(fkmph);
-  gsmSerial.print("km/saat");
+  gsmSerial.println(" km/saat");
   
-  gsmSerial.print("   LINK =");
-  gsmSerial.print(" http://maps.google.com/?ie=UTF8&hq=&ll=");
+  gsmSerial.println("LINK =");
+  gsmSerial.print("http://maps.google.com/?ie=UTF8&hq=&ll=");
   gsmSerial.print(flat_store,6);
   gsmSerial.print(",");
   gsmSerial.print(flon_store,6);
   gsmSerial.print("&z=20");
-  gsmSerial.write(26);
+  gsmSerial.write(26);  
 }
 
 void removeSms(){
