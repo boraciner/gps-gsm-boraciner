@@ -174,11 +174,11 @@ void KoordinatBilgisiGonder(){
 }
 
 void removeSms(){
-Serial.println("---->removeSms");  
+//Serial.println("---->removeSms");  
 gsmSerial.println("AT+CMGD=1,4");
 delay(100);
 gsmSerial.write(26);
-Serial.println("<----removeSms");
+//Serial.println("<----removeSms");
 }
 
 int IsRinging()
