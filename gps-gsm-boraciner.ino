@@ -17,6 +17,7 @@ String RemoveCommand = String("AT+CMGD=");
 String ADMIN_PHONE_NUMBER_1 = String("05558230165");
 String ADMIN_PHONE_NUMBER_2 = String("05323342412");
 String ADMIN_PHONE_NUMBER_3 = String("05396933288");
+String ADMIN_PHONE_NUMBER_4 = String("99999999999");
 
 String recievedNumber = String();
 
@@ -39,8 +40,7 @@ void setup()
   Timer1.attachInterrupt(callback);  
   
   delay(3000);
-  inData = "";
-  //removeSms();  
+  inData = ""; 
 }
 
 void loop() // run over and over
@@ -121,34 +121,18 @@ void processData(){
   { // telefon caliyor
     //Serial.println("telefon caliyor");
     AramayiMesguleCevir();    
-    indexofMsgStr = inData.indexOf("+905");
-    indexofMsgStr += 2;
+    indexofMsgStr = inData.indexOf("+905") + 2;
     recievedNumber = inData.substring(indexofMsgStr , indexofMsgStr+11); 
     //Serial.print("recieved number=");
     //Serial.println(recievedNumber);
-    admin_called = false;
     
-    if(ADMIN_PHONE_NUMBER_1 == recievedNumber)
+    if(IsAdminNumber())
     {
-      admin_called = true;
-    }
-    else if(ADMIN_PHONE_NUMBER_2 == recievedNumber)
-    {
-      admin_called = true;      
-    }
-    else if(ADMIN_PHONE_NUMBER_3 == recievedNumber)
-    {
-      admin_called = true;      
-    }
-    
-    if( admin_called )
-    {
-      //Serial.println("admin_called ok!");
+      //Serial.println("admin ok!");
       TAKEGPSDATA();
       KoordinatBilgisiGonder();        
     }
   }
-  
 }
 
 void AramayiMesguleCevir(){
@@ -190,11 +174,11 @@ void KoordinatBilgisiGonder(){
 }
 
 void removeSms(){
-//Serial.println("---->removeSms");  
+Serial.println("---->removeSms");  
 gsmSerial.println("AT+CMGD=1,4");
 delay(100);
 gsmSerial.write(26);
-//Serial.println("<----removeSms");
+Serial.println("<----removeSms");
 }
 
 int IsRinging()
@@ -207,6 +191,28 @@ int IsRinging()
   {
     return 0;
   }
+}
+int IsAdminNumber()
+{
+    
+  if(ADMIN_PHONE_NUMBER_1 == recievedNumber)
+  {
+    return 1;
+  }
+  else if(ADMIN_PHONE_NUMBER_2 == recievedNumber)
+  {
+    return 1;
+  }
+  else if(ADMIN_PHONE_NUMBER_3 == recievedNumber)
+  {
+    return 1;
+  }
+  else if(ADMIN_PHONE_NUMBER_4 == recievedNumber)
+  {
+    return 1;
+  }    
+  return 0;
+  
 }
 
 void callback()
