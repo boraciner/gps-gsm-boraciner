@@ -17,7 +17,7 @@ String RemoveCommand = String("AT+CMGD=");
 String ADMIN_PHONE_NUMBER_1 = String("05558230165");
 String ADMIN_PHONE_NUMBER_2 = String("05323342412");
 String ADMIN_PHONE_NUMBER_3 = String("05396933288");
-String ADMIN_PHONE_NUMBER_4 = String("99999999999");
+String ADMIN_PHONE_NUMBER_4 = String("05373624078");
 
 String recievedNumber = String();
 
@@ -41,6 +41,9 @@ void setup()
   
   delay(3000);
   inData = ""; 
+  
+  //Serial.println("basla...");     
+  
 }
 
 void loop() // run over and over
@@ -121,7 +124,7 @@ void processData(){
   { // telefon caliyor
     //Serial.println("telefon caliyor");
     AramayiMesguleCevir();    
-    indexofMsgStr = inData.indexOf("+905") + 2;
+    indexofMsgStr = inData.indexOf("05");
     recievedNumber = inData.substring(indexofMsgStr , indexofMsgStr+11); 
     //Serial.print("recieved number=");
     //Serial.println(recievedNumber);
