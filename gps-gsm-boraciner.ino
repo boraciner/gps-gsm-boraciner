@@ -87,20 +87,31 @@ void printGPSDATA(){
 
 void TAKEGPSDATA(){
   //Serial.println("---->TAKEGPSDATA");
+  boolean gps_valid = false;
   ss.listen();
-  delay(100);
-  for (unsigned long start = millis(); millis() - start < 1000;)
+  delay(1000);
+  
+  
+  for(int i =0 ; i < 200 ; i++)
   {
-    while (ss.available())
+    if(!gps_valid)
     {
-      char c = ss.read();
-      if (gps.encode(c)) // Did a new valid sentence come in?
+      while (ss.available())
       {
-        printGPSDATA();
+        char c = ss.read();
+        if (gps.encode(c)) // Did a new valid sentence come in?
+        {
+          printGPSDATA();
+          gps_valid = true;
+          break;
+        }
       }
+      delay(5);
     }
   }
+  
   gsmSerial.listen();
+  delay(1000);
   //Serial.println("<----TAKEGPSDATA");
   
 }
@@ -111,7 +122,6 @@ void processData(){
   if(IsRinging())
   { // telefon caliyor
     //Serial.println("telefon caliyor");
-    //AramayiMesguleCevir();
     indexofMsgStr = inData.indexOf("05");
     recievedNumber = inData.substring(indexofMsgStr , indexofMsgStr+11);
     //Serial.print("recieved number=");
@@ -125,11 +135,6 @@ void processData(){
     }
 
   }
-}
-
-void AramayiMesguleCevir(){
-  gsmSerial.println("AT H");
-  delay(50);
 }
 
 void KoordinatBilgisiGonder(){
