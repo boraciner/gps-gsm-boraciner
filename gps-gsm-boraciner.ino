@@ -18,7 +18,6 @@ String ADMIN_PHONE_NUMBER_4 = "05373624078";
 String recievedNumber = "";
 String  bora =  "";
 int callback_counter=0;
-int removesms_counter=0;
 int indexofMsgStr = 0;
 float flat, flon, fkmph;
 unsigned long age;
@@ -168,14 +167,6 @@ void KoordinatBilgisiGonder(){
   gsmSerial.write(26);
 
   
-}
-
-void removeSms(){
-  //Serial.println("---->removeSms");
-  gsmSerial.println("AT+CMGD=1,4");
-  delay(100);
-  gsmSerial.write(26);
-  //Serial.println("<----removeSms");
 }
 
 int IsRinging()
