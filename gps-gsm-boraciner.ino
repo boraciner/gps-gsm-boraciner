@@ -3,10 +3,6 @@
 #include <SoftwareSerial.h>
 #define ONE_MINUTE 8
 
-TinyGPS gps;
-
-SoftwareSerial ss(5,6);
-
 String inData = "";
 boolean inputAvailable = false;
 String recievedNumber = "";
@@ -25,12 +21,18 @@ boolean alarm_coordinates_ok = false , alarm_admin_called = false;
 int callback_max = ONE_MINUTE * 20;
 float GPS_ALARM_TOLERANCE = 0.002;
 
+SoftwareSerial gsmSerial(2,3);
+SoftwareSerial gpsSerial(4,5);
+TinyGPS gps;
+
 void setup()
 {
+  
 
-    pinMode(buzzer, OUTPUT);
+  
+	pinMode(buzzer, OUTPUT);
 	Serial.begin(9600);
-	ss.begin(9600);
+	gpsSerial.begin(9600);
 	gsmSerial.begin(9600);
 
 	Timer1.initialize(8388480); //yaklasik 8.3 saniye
@@ -39,11 +41,10 @@ void setup()
 	delay(2000);
 	gsmSerial.listen();
 
-	Serial.println("basla");
 	delay(1000);
 	gsmSerial.listen();
 
-        fastbuzzer();
+	fastbuzzer();
 }
 
 void loop() // run over and over
@@ -62,67 +63,21 @@ void loop() // run over and over
 	{
 		inputAvailable=false;
 		processData();
-        
+		
 		inData="";
 	}
 
-        if(set_alarm)
-        {
-            TAKEGPSDATA();
-            set_alarm=false;
-        }
-}
-
-void printGPSDATA()
-{
-	gps.f_get_position(&flat, &flon, &age);
-
-	if( flat > 0.0 && flon > 0.0)
+	if(set_alarm)
 	{
-          flat_store = flat;
-          flon_store = flon;
-          Serial.print("LAT = ");
-          Serial.println(flat_store,6); 
-          Serial.print("LON = ");
-          Serial.println(flon_store,6);     
-          
-          
-          if(!alarm_coordinates_ok)
-          {
-            alarm_lat = flat_store;
-            alarm_lon = flon_store;  
-            alarm_coordinates_ok = true;
-          }
-          else
-          {
-            if( alarm_lat < flat_store - GPS_ALARM_TOLERANCE || alarm_lat > flat_store + GPS_ALARM_TOLERANCE ||
-                alarm_lon < flon_store - GPS_ALARM_TOLERANCE || alarm_lon > flon_store + GPS_ALARM_TOLERANCE<    )
-            {
-              if(!alarm_admin_called)
-              {
-                Serial.println("MAKE A CALL");
-                gsmSerial.println("ATD+905558230165;");
-                alarm_admin_called = true;
-              }
-            }
-            else
-            {
-              Serial.println("DO NOT MAKE A CALL");
-              
-            }  
-          }
-
-        }
-	
-
-	fkmph = gps.f_speed_kmph(); // speed in km/hr
-
+		TAKEGPSDATA();
+		set_alarm=false;
+	}
 }
+
 
 void TAKEGPSDATA(){
-	Serial.println("---->TAKEGPSDATA");
 	boolean gps_valid = false;
-	ss.listen();
+	gpsSerial.listen();
 	delay(1000);
 
 
@@ -130,14 +85,14 @@ void TAKEGPSDATA(){
 	{
 		if(!gps_valid)
 		{
-			while (ss.available())
+			while (gpsSerial.available())
 			{
-				char c = ss.read();
+				char c = gpsSerial.read();
 				if (gps.encode(c)) // Did a new valid sentence come in?
 				{
 					printGPSDATA();
 					gps_valid = true;
-                                        break;
+					break;
 				}
 			}
 			delay(5);
@@ -146,40 +101,74 @@ void TAKEGPSDATA(){
 
 	gsmSerial.listen();
 	delay(1000);
-	Serial.println("<----TAKEGPSDATA");
-
 }
 
 void processData(){
 	Serial.println(inData);
-        
+	
 	if(IsRinging())
 	{ // telefon caliyor
-		Serial.println("telefon caliyor");
 		indexofMsgStr = inData.indexOf("05");
 		recievedNumber = inData.substring(indexofMsgStr , indexofMsgStr+11);
-		Serial.print("recieved number=");
-		Serial.println(recievedNumber);
-
+		
 		if(IsAdminNumber())   // BORAAAAAAAAAA
 		{
-			Serial.println("admin ok!");
 			TAKEGPSDATA();
-			if(gpsDataOk())
+			if(currentGpsDataOk())
 			{
-        			KoordinatBilgisiGonder();
+				KoordinatBilgisiGonder();
 			}
 			else
 			{
-				HazirDegilBilgisiGonder();
+				if(storedGpsDataOk())
+				{
+					KoordinatBilgisiGonder();
+				}
+				else
+				{
+					HazirDegilBilgisiGonder();
+				}
 			}
 		}
-                else{
-			Serial.println("admin NOT ok!");                
-                }
-
 	}
 }
+
+
+void printGPSDATA()
+{
+	gps.f_get_position(&flat, &flon, &age);
+
+	if( flat > 0.0 && flon > 0.0)
+	{
+		flat_store = flat;
+		flon_store = flon;
+		
+		if(!alarm_coordinates_ok)
+		{
+			alarm_lat = flat_store;
+			alarm_lon = flon_store;  
+			alarm_coordinates_ok = true;
+		}
+		else
+		{
+			if( alarm_lat < flat_store - GPS_ALARM_TOLERANCE || alarm_lat > flat_store + GPS_ALARM_TOLERANCE ||
+					alarm_lon < flon_store - GPS_ALARM_TOLERANCE || alarm_lon > flon_store + GPS_ALARM_TOLERANCE   )
+			{
+				if(!alarm_admin_called)
+				{
+					gsmSerial.println("ATD+905558230165;");
+					alarm_admin_called = true;
+				}
+			}
+		}
+
+	}
+	
+
+	fkmph = gps.f_speed_kmph(); // speed in km/hr
+
+}
+
 int IsAdminNumber()
 {
 	if(recievedNumber.equals("05558230165"))
@@ -201,20 +190,20 @@ int IsAdminNumber()
 			else
 			{
 				if(recievedNumber.equals("05396933288"))
-			        {
-				     return 1;
-		          	}
-                                else
-                                {
-                                    if(recievedNumber.equals("05532764121"))
-									{		
-                                        return 1;
-                                    }                                       
-                                    else
-                                    {
-                                       return 0;
-                                    }  
-                                }
+				{
+					return 1;
+				}
+				else
+				{
+					if(recievedNumber.equals("05532764121"))
+					{		
+						return 1;
+					}                                       
+					else
+					{
+						return 0;
+					}  
+				}
 			}
 		}
 	}
@@ -241,11 +230,11 @@ void KoordinatBilgisiGonder(){
 	gsmSerial.println(" km/saat");
 
 	gsmSerial.println("LINK =");
-	gsmSerial.print("http://maps.google.com/?ie=UTF8&hq=&ll=");
+	gsmSerial.print("https://maps.google.com/maps?q=");
 	gsmSerial.print(flat_store,6);
 	gsmSerial.print(",");
 	gsmSerial.print(flon_store,6);
-	gsmSerial.print("&z=20");
+	gsmSerial.print("+(Frontera)");
 	gsmSerial.write(26);
 }
 
@@ -262,11 +251,7 @@ void HazirDegilBilgisiGonder()
 	gsmSerial.println(gpsMesajIcerik);
 	delay(1000);
 
-	gsmSerial.println("GPS VERISI HAZIR DEGIL ");
-	gsmSerial.print(flat_store,6);
-	gsmSerial.print("-");
-	gsmSerial.println(flon_store,6);
-
+	gsmSerial.println("Gps Verisi Hazir Degil!");
 	gsmSerial.write(26);
 }
 
@@ -283,7 +268,7 @@ int IsRinging()
 }
 
 
-int gpsDataOk()
+int currentGpsDataOk()
 {
 	if(( flat > 0.0 ) && ( flon > 0.0 ) )
 	{
@@ -294,31 +279,42 @@ int gpsDataOk()
 		return 0;
 	}
 }
+int storedGpsDataOk()
+{
+	if(( flat_store > 0.0 ) && ( flon_store > 0.0 ) )
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+
 
 void callback()
 {
 	callback_counter++;
-        Serial.println("callback...");
 	if(callback_counter >= callback_max)
 	{
-		Serial.println("callback ok!");
-                callback_max = ONE_MINUTE * 8;
+		callback_max = ONE_MINUTE * 8;
 		callback_counter = 0;
-                if(!set_alarm)
-                { 
-                  set_alarm=true;
-                }
+		if(!set_alarm)
+		{ 
+			set_alarm=true;
+		}
 	}
 }	
 
 void fastbuzzer()
 {
- for(int i = 0; i< 10; i++)
- {
-  digitalWrite(buzzer, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(100);               // wait for a second
-  digitalWrite(buzzer, LOW);    // turn the LED off by making the voltage LOW
-  delay(100); 
- }
+	for(int i = 0; i< 10; i++)
+	{
+		digitalWrite(buzzer, HIGH);   // turn the LED on (HIGH is the voltage level)
+		delay(100);               // wait for a second
+		digitalWrite(buzzer, LOW);    // turn the LED off by making the voltage LOW
+		delay(100); 
+	}
 }
 
